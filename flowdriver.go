@@ -89,11 +89,11 @@ func FlowDriver(in Invoker) http.HandlerFunc {
 
 		for i := 0; i < originalIn.NumField(); i++ {
 			originalInField := originalIn.Field(i)
+			copyInField := copiedIn.Field(i)
 			// пропускаем приватные поля структуры
-			if !originalInField.CanSet() {
+			if !copyInField.CanSet() {
 				continue
 			}
-			copyInField := copiedIn.Field(i)
 
 			fieldName := originalIn.Type().Field(i).Name
 			value := r.FormValue(fieldName) // TODO: возможность задать имя параметра через тэг структуры
