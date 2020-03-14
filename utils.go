@@ -2,16 +2,14 @@ package flowdriver
 
 import (
 	"encoding/json"
+	"github.com/Delisa-sama/flowdriver/flowerror"
 	"net/http"
 )
 
 type EmptyStruct struct{}
 
-// если ответ предполагает пустой json
-var EMPTY = EmptyStruct{}
-
-func WriteJSONError(w http.ResponseWriter, message string, status int) error {
-	return WriteJSONResponse(w, map[string]string{"error": message}, status)
+func WriteJSONError(w http.ResponseWriter, err flowerror.FlowError, status int) error {
+	return WriteJSONResponse(w, err, status)
 }
 
 func WriteJSONResponse(w http.ResponseWriter, v interface{}, status int) error {

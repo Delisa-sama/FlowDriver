@@ -2,6 +2,7 @@ package flowdriver
 
 import (
 	"errors"
+	"github.com/Delisa-sama/flowdriver/flowerror"
 	log "github.com/Delisa-sama/logger"
 	"net/http"
 	"reflect"
@@ -9,7 +10,7 @@ import (
 )
 
 type Invoker interface {
-	Invoke() (status int, err error)
+	Invoke() (status int, err flowerror.FlowError)
 }
 
 const (
@@ -99,7 +100,7 @@ func FlowDriver(in Invoker) http.HandlerFunc {
 			value := r.FormValue(fieldName) // TODO: возможность задать имя параметра через тэг структуры
 			if len(value) == 0 {
 				logger.Errorf("[%s] Input field is empty => %s", handlerName, fieldName)
-				_ = WriteJSONError(w, "Missing input field: "+fieldName, http.StatusBadRequest)
+				_ = WriteJSONError(w, flowerror.New("EMPTY_INPUT", "Missing input field: "+fieldName), http.StatusBadRequest)
 				return
 			}
 
@@ -135,7 +136,7 @@ func FlowDriver(in Invoker) http.HandlerFunc {
 
 			if err != nil {
 				logger.Errorf("[%s] Failed to parse input field %s = %s => %s\n Error: %s", handlerName, fieldName, value, originalInField.Kind(), err)
-				_ = WriteJSONError(w, "Invalid input", http.StatusBadRequest)
+				_ = WriteJSONError(w, flowerror.New("INVALID_FIELD_TYPE", "Invalid input"), http.StatusBadRequest)
 				return
 			}
 
@@ -147,23 +148,23 @@ func FlowDriver(in Invoker) http.HandlerFunc {
 		statusInterface := result[STATUS].Interface()
 		if statusInterface == nil {
 			logger.Errorf("[%s] Invoked statusInterface cannot be nil", handlerName)
-			_ = WriteJSONError(w, "Internal server error", http.StatusBadGateway)
+			_ = WriteJSONError(w, flowerror.New("BAD_STATUS", "Internal server error. Bad status."), http.StatusBadGateway)
 			return
 		}
 		var status = statusInterface.(int)
 
 		errInterface := result[ERROR].Interface()
 		if errInterface != nil {
-			var err = errInterface.(error)
+			var err = errInterface.(flowerror.FlowError)
 			logger.Errorf("[%s] %s", handlerName, err)
-			_ = WriteJSONError(w, err.Error(), status)
+			_ = WriteJSONError(w, err, status)
 			return
 		}
 
 		outInterface := out.Interface()
 		if outInterface == nil {
 			logger.Errorf("[%s] Out struct cannot be nil", handlerName)
-			_ = WriteJSONError(w, "Internal server error", http.StatusBadGateway)
+			_ = WriteJSONError(w, flowerror.New("BAD_OUTPUT", "Internal server error. Bad output."), http.StatusBadGateway)
 			return
 		}
 
